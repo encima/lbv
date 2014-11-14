@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
     private TextView txtSpeechInput;
     private ImageButton btnSpeak;
     private final int REQ_CODE_SPEECH = 12222;
-    Map<String, String> pkgAppsList;
+    ArrayList<AppInfo> pkgAppsList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,34 +96,34 @@ public class MainActivity extends Activity {
                     String term = result.get(0).toLowerCase();
                     Log.i(getString(R.string.app_name), term);
 
-                    boolean found = false;
-                    Iterator<Map.Entry<String, String>> iterator = pkgAppsList.entrySet().iterator();
-                    while (iterator.hasNext()) {
-                        Map.Entry<String,String> pairs = (Map.Entry<String,String>)iterator.next();
-                        String p =  pairs.getValue().toLowerCase();
-                        String app = pairs.getKey().toLowerCase();
-//                        search for app in name and package, as well as if a user spells it out letter by letter
-                        if((app.contains(term) || p.contains(term) || app.contains(term.replaceAll(" ", ""))) && found == false) {
-                            Log.i(getString(R.string.app_name), app + "--->" + p);
-                            Intent intent;
-                            PackageManager manager = getPackageManager();
-                            try {
-                                found = true;
-                                intent = manager.getLaunchIntentForPackage(p);
-                                if (intent == null)
-                                    throw new PackageManager.NameNotFoundException();
-                                intent.addCategory(Intent.CATEGORY_LAUNCHER);
-                                startActivity(intent);
-//                                launch first app to match and exit
-                                break;
-                            } catch (PackageManager.NameNotFoundException e) {
-                                Log.e(getString(R.string.app_name), e.toString());
-                                txtSpeechInput.setText("Sorry, '" + result.get(0) + "' not found");
-                            }
+//                    boolean found = false;
+                    ArrayList<AppInfo> found = new ArrayList<AppInfo>();
+                    for(int i = 0; i < pkgAppsList.size(); i++) {
+                        AppInfo ai = pkgAppsList.get(i);
+                        if((ai.getAppName().toLowerCase().contains(term) || ai.getPackageName().toLowerCase().contains(term) || ai.getAppName().toLowerCase().contains(term.replaceAll(" ", ""))) && found.size() == 0) {
+                            Log.i(getString(R.string.app_name), ai.getAppName() + "--->" + ai.getPackageName());
+                            found.add(ai);
                         }
                     }
-                    if(found == false) {
+                    Log.i(getString(R.string.app_name), "Size: " + found.size());
+                    if(found.size() == 0) {
                         txtSpeechInput.setText("Sorry, '" + result.get(0) + "' not found");
+                    }else if(found.size() == 1) {
+                        Intent intent;
+                        PackageManager manager = getPackageManager();
+                        try {
+                            intent = manager.getLaunchIntentForPackage(found.get(0).getPackageName());
+                            if (intent == null)
+                                throw new PackageManager.NameNotFoundException();
+                            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+                            startActivity(intent);
+                        } catch (PackageManager.NameNotFoundException e) {
+                            Log.e(getString(R.string.app_name), e.toString());
+                            txtSpeechInput.setText("Sorry, '" + found.get(0).getAppName() + "' could not be launched");
+                        }
+                    }else{
+                        //@TODO: handle multiple matches
+                        txtSpeechInput.setText(found.size() + " apps found");
                     }
                 }
                 break;
@@ -132,16 +132,19 @@ public class MainActivity extends Activity {
         }
     }
 
-    private Map<String, String> getInstalledApps(boolean getSysPackages) {
-        Map<String, String> res = new HashMap<String, String>();
+    private ArrayList<AppInfo> getInstalledApps(boolean getSysPackages) {
+        ArrayList<AppInfo> res = new ArrayList<AppInfo>();
         List<PackageInfo> packs = getPackageManager().getInstalledPackages(0);
         for(int i=0;i<packs.size();i++) {
             PackageInfo p = packs.get(i);
             if ((!getSysPackages) && (p.versionName == null)) {
                 continue ;
             }
-
-            res.put(p.applicationInfo.loadLabel(getPackageManager()).toString(), p.packageName);
+            AppInfo ai = new AppInfo();
+            ai.setPackageName(p.packageName);
+            ai.setAppName(p.applicationInfo.loadLabel(getPackageManager()).toString());
+            ai.setIcon(p.applicationInfo.loadIcon(getPackageManager()));
+            res.add(ai);
         }
         return res;
     }
