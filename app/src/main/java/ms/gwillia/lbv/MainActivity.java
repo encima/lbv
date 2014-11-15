@@ -5,6 +5,9 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.util.Log;
@@ -57,6 +60,8 @@ public class MainActivity extends Activity {
 
             @Override
             public void onClick(View v) {
+                hLL.removeAllViews();
+                txtSpeechInput.setText("LaunchByVoice");
                 promptSpeechInput();
             }
         });
@@ -98,9 +103,7 @@ public class MainActivity extends Activity {
                     ArrayList<String> result = data
                             .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
                     String term = result.get(0).toLowerCase();
-                    Log.i(getString(R.string.app_name), term);
 
-//                    boolean found = false;
                     ArrayList<AppInfo> found = new ArrayList<AppInfo>();
                     for(int i = 0; i < pkgAppsList.size(); i++) {
                         AppInfo ai = pkgAppsList.get(i);
@@ -109,19 +112,19 @@ public class MainActivity extends Activity {
                             found.add(ai);
                         }
                     }
-                    Log.i(getString(R.string.app_name), "Size: " + found.size());
                     if(found.size() == 0) {
                         txtSpeechInput.setText("Sorry, '" + result.get(0) + "' not found");
                     }else {
                         if (found.size() == 1) {
                             launchIntent(found.get(0));
                         } else {
-                            //@TODO: handle multiple matches
-                            txtSpeechInput.setText(found.size() + " apps found");
+                            txtSpeechInput.setText(found.size() + " apps found for: " + term);
                             for (int i = 0; i < found.size(); i++) {
                                 ImageButton ib = new ImageButton(this);
                                 final AppInfo ai = found.get(i);
-                                ib.setBackground(ai.getIcon());
+                                Bitmap bitmap = ((BitmapDrawable) ai.getIcon()).getBitmap();
+                                Drawable d = new BitmapDrawable(getResources(), Bitmap.createScaledBitmap(bitmap, 150, 150, true));
+                                ib.setBackground(d);
                                 ib.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View view) {
@@ -151,7 +154,7 @@ public class MainActivity extends Activity {
             if (intent == null)
                 throw new PackageManager.NameNotFoundException();
             intent.addCategory(Intent.CATEGORY_LAUNCHER);
-            txtSpeechInput.setText("");
+            txtSpeechInput.setText("LaunchByVoice");
             startActivity(intent);
             return true;
         } catch (PackageManager.NameNotFoundException e) {
@@ -192,9 +195,9 @@ public class MainActivity extends Activity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
-        }
+//        if (id == R.id.action_settings) {
+//            return true;
+//        }
         return super.onOptionsItemSelected(item);
     }
 }
