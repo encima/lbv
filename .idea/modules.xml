@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/LBV.iml" filepath="$PROJECT_DIR$/LBV.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/lbv.iml" filepath="$PROJECT_DIR$/lbv.iml" />
     </modules>
   </component>
 </project>

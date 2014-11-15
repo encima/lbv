@@ -11,7 +11,9 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +30,8 @@ public class MainActivity extends Activity {
 
     private TextView txtSpeechInput;
     private ImageButton btnSpeak;
+    private HorizontalScrollView hsv;
+    private LinearLayout hLL;
     private final int REQ_CODE_SPEECH = 12222;
     ArrayList<AppInfo> pkgAppsList;
 
@@ -39,7 +43,8 @@ public class MainActivity extends Activity {
         final Intent mainIntent = new Intent(Intent.ACTION_MAIN, null);
         mainIntent.addCategory(Intent.CATEGORY_LAUNCHER);
         pkgAppsList = getInstalledApps(true);
-
+        hsv = (HorizontalScrollView) findViewById(R.id.horizontalScrollView);
+        hLL = (LinearLayout) findViewById(R.id.horizontalLL);
         txtSpeechInput = (TextView) findViewById(R.id.txtSpeechInput);
         btnSpeak = (ImageButton) findViewById(R.id.btnSpeak);
 
@@ -47,7 +52,6 @@ public class MainActivity extends Activity {
         getActionBar().hide();
 
         promptSpeechInput();
-
 
         btnSpeak.setOnClickListener(new View.OnClickListener() {
 
@@ -100,7 +104,7 @@ public class MainActivity extends Activity {
                     ArrayList<AppInfo> found = new ArrayList<AppInfo>();
                     for(int i = 0; i < pkgAppsList.size(); i++) {
                         AppInfo ai = pkgAppsList.get(i);
-                        if((ai.getAppName().toLowerCase().contains(term) || ai.getPackageName().toLowerCase().contains(term) || ai.getAppName().toLowerCase().contains(term.replaceAll(" ", ""))) && found.size() == 0) {
+                        if((ai.getAppName().toLowerCase().contains(term) || ai.getPackageName().toLowerCase().contains(term) || ai.getAppName().toLowerCase().contains(term.replaceAll(" ", "")))) {
                             Log.i(getString(R.string.app_name), ai.getAppName() + "--->" + ai.getPackageName());
                             found.add(ai);
                         }
@@ -108,27 +112,52 @@ public class MainActivity extends Activity {
                     Log.i(getString(R.string.app_name), "Size: " + found.size());
                     if(found.size() == 0) {
                         txtSpeechInput.setText("Sorry, '" + result.get(0) + "' not found");
-                    }else if(found.size() == 1) {
-                        Intent intent;
-                        PackageManager manager = getPackageManager();
-                        try {
-                            intent = manager.getLaunchIntentForPackage(found.get(0).getPackageName());
-                            if (intent == null)
-                                throw new PackageManager.NameNotFoundException();
-                            intent.addCategory(Intent.CATEGORY_LAUNCHER);
-                            startActivity(intent);
-                        } catch (PackageManager.NameNotFoundException e) {
-                            Log.e(getString(R.string.app_name), e.toString());
-                            txtSpeechInput.setText("Sorry, '" + found.get(0).getAppName() + "' could not be launched");
+                    }else {
+                        if (found.size() == 1) {
+                            launchIntent(found.get(0));
+                        } else {
+                            //@TODO: handle multiple matches
+                            txtSpeechInput.setText(found.size() + " apps found");
+                            for (int i = 0; i < found.size(); i++) {
+                                ImageButton ib = new ImageButton(this);
+                                final AppInfo ai = found.get(i);
+                                ib.setBackground(ai.getIcon());
+                                ib.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        if(launchIntent(ai)) {
+                                            hLL.removeAllViews();
+                                            hsv.setVisibility(View.INVISIBLE);
+                                        }
+                                    }
+                                });
+                                hLL.addView(ib);
+                                hsv.setVisibility(View.VISIBLE);
+                            }
                         }
-                    }else{
-                        //@TODO: handle multiple matches
-                        txtSpeechInput.setText(found.size() + " apps found");
                     }
                 }
                 break;
             }
 
+        }
+    }
+
+    private boolean launchIntent(AppInfo ai) {
+        Intent intent;
+        PackageManager manager = getPackageManager();
+        try {
+            intent = manager.getLaunchIntentForPackage(ai.getPackageName());
+            if (intent == null)
+                throw new PackageManager.NameNotFoundException();
+            intent.addCategory(Intent.CATEGORY_LAUNCHER);
+            txtSpeechInput.setText("");
+            startActivity(intent);
+            return true;
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(getString(R.string.app_name), e.toString());
+            txtSpeechInput.setText("Sorry, '" + ai.getAppName() + "' could not be launched");
+            return false;
         }
     }
 
